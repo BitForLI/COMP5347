@@ -11,6 +11,7 @@ import Quiz from "./pages/Quiz";
 import Leaderboard from "./pages/Leaderboard";
 import Attempts from "./pages/Attempts";
 import Admin from "./pages/Admin";
+import Category from "./pages/Category";
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route
               path="/quiz"
+              element={
+                <ProtectedRoute>
+                  <Category />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quiz/play"
               element={
                 <ProtectedRoute>
                   <Quiz />
@@ -73,4 +82,3 @@ export default function App() {
     </div>
   );
 }
-

@@ -24,7 +24,10 @@ function reducer(state, action) {
       };
     case "ANSWER": {
       const { questionId, selectedIndex, timeRemainingSec } = action;
-      const nextAnswers = [...state.answers, { questionId, selectedIndex, timeRemainingSec }];
+      const nextAnswers = [
+        ...state.answers,
+        { questionId, selectedIndex, timeRemainingSec },
+      ];
       const nextIndex = state.index + 1;
       const finished = nextIndex >= state.questions.length;
       return { ...state, answers: nextAnswers, index: nextIndex, finished };
@@ -41,23 +44,35 @@ export function QuizProvider({ children }) {
 
   const actions = useMemo(
     () => ({
-      async loadQuiz(limit = 8) {
+      async loadQuiz(category, limit = 8) {
         dispatch({ type: "START_LOADING" });
-        const data = await api.get(`/quiz?limit=${limit}`).then(unwrap);
+
+        const query = new URLSearchParams();
+        query.set("limit", String(limit));
+        if (category) query.set("category", category);
+
+        const data = await api.get(`/quiz?${query.toString()}`).then(unwrap);
         dispatch({ type: "SET_QUIZ", questions: data.questions });
       },
       answerCurrent(selectedIndex, timeRemainingSec) {
         const q = state.questions[state.index];
         if (!q) return;
-        dispatch({ type: "ANSWER", questionId: q.id, selectedIndex, timeRemainingSec });
+        dispatch({
+          type: "ANSWER",
+          questionId: q.id,
+          selectedIndex,
+          timeRemainingSec,
+        });
       },
       async submit() {
-        const data = await api.post("/quiz/submit", { answers: state.answers }).then(unwrap);
+        const data = await api
+          .post("/quiz/submit", { answers: state.answers })
+          .then(unwrap);
         dispatch({ type: "SET_SCORE", score: data.score });
         return data;
       },
     }),
-    [state.questions, state.index, state.answers]
+    [state.questions, state.index, state.answers],
   );
 
   const value = useMemo(() => ({ ...state, ...actions }), [state, actions]);
@@ -69,4 +84,3 @@ export function useQuiz() {
   if (!ctx) throw new Error("useQuiz must be used within QuizProvider");
   return ctx;
 }
-

@@ -1,7 +1,13 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { requireAuth } = require("../middleware/auth.middleware");
-const { getQuiz, submitQuiz, myAttempts, leaderboard } = require("../controllers/quiz.controller");
+const {
+  getQuiz,
+  getCategories,
+  submitQuiz,
+  myAttempts,
+  leaderboard,
+} = require("../controllers/quiz.controller");
 
 const router = express.Router();
 
@@ -16,6 +22,6 @@ router.get("/", requireAuth, getQuiz);
 router.post("/submit", requireAuth, submitLimiter, submitQuiz);
 router.get("/attempts", requireAuth, myAttempts);
 router.get("/leaderboard", requireAuth, leaderboard);
+router.get("/categories", requireAuth, getCategories);
 
 module.exports = router;
-

@@ -14,14 +14,20 @@ function shuffle(arr) {
 
 async function getQuiz(req, res) {
   const limit = Math.min(Math.max(Number(req.query.limit || 8), 6), 10);
+  const category = (req.query.category || "").trim();
 
-  // 只取 active 题目；按随机排序取 N 条
-  const docs = await Question.aggregate([{ $match: { active: true } }, { $sample: { size: limit } }]);
-  const questions = shuffle(docs).map((q) => ({
+  const match = { active: true };
+  if (category) match.category = category;
+
+  const docs = await Question.aggregate([
+    { $match: match },
+    { $sample: { size: limit } },
+  ]);
+
+  const questions = docs.map((q) => ({
     id: String(q._id),
     prompt: q.prompt,
     options: q.options,
-    // 变体字段可按你们最终选择决定是否下发
     category: q.category,
     imageUrl: q.imageUrl,
     explanation: q.explanation,
@@ -38,15 +44,21 @@ const submitSchema = z.object({
         questionId: z.string().min(1),
         selectedIndex: z.number().int().min(0).max(3),
         timeRemainingSec: z.number().int().min(0).max(120).optional(),
-      })
+      }),
     )
     .min(6)
     .max(10),
 });
 
+async function getCategories(req, res) {
+  const categories = await Question.distinct("category", { active: true });
+  const cleaned = categories.filter(Boolean).sort();
+  return ok(res, { categories: cleaned });
+}
 async function submitQuiz(req, res) {
   const parsed = submitSchema.safeParse(req.body);
-  if (!parsed.success) return fail(res, parsed.error.issues[0]?.message || "Invalid input", 400);
+  if (!parsed.success)
+    return fail(res, parsed.error.issues[0]?.message || "Invalid input", 400);
 
   const { answers } = parsed.data;
   const ids = answers.map((a) => a.questionId);
@@ -102,5 +114,10 @@ async function leaderboard(req, res) {
   return ok(res, { leaderboard: rows });
 }
 
-module.exports = { getQuiz, submitQuiz, myAttempts, leaderboard };
-
+module.exports = {
+  getQuiz,
+  getCategories,
+  submitQuiz,
+  myAttempts,
+  leaderboard,
+};
