@@ -7,7 +7,6 @@ const { ok, fail } = require("./utils/response");
 const { errorHandler } = require("./middleware/error.middleware");
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
-const Question = require("./models/Question");
 
 const authRoutes = require("./routes/auth.routes");
 const quizRoutes = require("./routes/quiz.routes");
@@ -88,39 +87,9 @@ async function ensureDemoUser() {
   console.log(`[demo] created user: ${email} / ${password}`);
 }
 
-/** 与 getCategories 一致：无有效分类名时插入演示题，避免分类页空白 */
-async function ensureDemoQuestions() {
-  const raw = await Question.distinct("category", { active: true });
-  if (raw.filter(Boolean).length > 0) return;
-
-  const mk = (category, i, prompt, correctIndex = 1) => ({
-    prompt,
-    options: ["Option A", "Option B", "Option C", "Option D"],
-    correctIndex,
-    active: true,
-    category,
-    explanation: `Demo question ${i + 1} in ${category}.`,
-  });
-
-  const general = Array.from({ length: 8 }, (_, i) =>
-    mk("General", i, `Demo — General #${i + 1}: Pick option B.`, 1),
-  );
-  const science = Array.from({ length: 8 }, (_, i) =>
-    mk("Science", i, `Demo — Science #${i + 1}: Pick option B.`, 1),
-  );
-  const history = Array.from({ length: 8 }, (_, i) =>
-    mk("History", i, `Demo — History #${i + 1}: Pick option B.`, 1),
-  );
-
-  await Question.insertMany([...general, ...science, ...history]);
-  // eslint-disable-next-line no-console
-  console.log("[demo] seeded questions: General, Science, History (8 each)");
-}
-
 async function start() {
   await connectDb(process.env.MONGODB_URI);
   await ensureDemoUser();
-  await ensureDemoQuestions();
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(`Backend listening on http://localhost:${PORT}`);
@@ -132,4 +101,3 @@ start().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
