@@ -9,3 +9,10 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
   return children;
 }
 
+/** 已登录才显示（如侧栏），不触发跳页；供 /login、/register 等公开页与受保护内容同用一版布局 */
+export function ShowWhenAuthed({ children }) {
+  const { token } = useAuth();
+  if (!token) return null;
+  return children;
+}
+

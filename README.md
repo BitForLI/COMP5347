@@ -43,11 +43,13 @@ npm run dev
 
 ### Frontend
 
-1. 复制环境变量：
+1. 复制环境变量（可选；不复制时默认连本机 `http://localhost:4000/api`）：
 
 ```bash
 cp frontend/.env.example frontend/.env
 ```
+
+   在 `frontend/.env` 里设置 **`VITE_API_BASE_URL`**（末尾带 **`/api`**）。连线上后端时改为 Render 地址，例如 `https://xxx.onrender.com/api`。部署 **Cloudflare Pages** 时在对应项目的 **Environment variables（构建环境）** 里配置同名变量；纯静态 Workers 若无法添加变量，需在本地带环境变量执行 `npm run build` 后再上传产物。
 
 2. 运行前端：
 

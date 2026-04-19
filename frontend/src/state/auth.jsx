@@ -41,8 +41,11 @@ export function AuthProvider({ children }) {
         const data = await api.post("/auth/login", { email, password }).then(unwrap);
         dispatch({ type: "LOGIN", token: data.token, user: data.user });
       },
-      async register(name, email, password) {
-        await api.post("/auth/register", { name, email, password }).then(unwrap);
+      async sendRegisterCode(email) {
+        await api.post("/auth/register/send-code", { email }).then(unwrap);
+      },
+      async registerAccount({ email, password, confirmPassword, code }) {
+        await api.post("/auth/register", { email, password, confirmPassword, code }).then(unwrap);
       },
       logout() {
         dispatch({ type: "LOGOUT" });

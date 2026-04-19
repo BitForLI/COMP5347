@@ -8,6 +8,11 @@
 cp .env.example .env
 ```
 
+注册验证码邮件：配置 **`RESEND_API_KEY`** 与 **`EMAIL_FROM`**（须与 [Resend](https://resend.com) 后台已验证发件人一致）。
+
+首次发送与冷却后的「重发」都调用：`POST /api/auth/register/send-code`。
+
+
 ## Run
 
 ```bash
@@ -18,7 +23,8 @@ npm run dev
 ## Routes
 
 - `GET /api/health`
-- `POST /api/auth/register`
+- `POST /api/auth/register/send-code`（注册：向邮箱发 6 位验证码，限流）
+- `POST /api/auth/register`（注册：`email`、`password`、`confirmPassword`、`code`）
 - `POST /api/auth/login` (rate limited)
 - `GET /api/auth/me`
 - `GET /api/quiz` (protected)

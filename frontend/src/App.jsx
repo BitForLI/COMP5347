@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import TopBar from "./components/TopBar";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { ShowWhenAuthed } from "./components/ProtectedRoute";
 import LeftSidebar from "./components/LeftSidebar";
 import Home from "./pages/Home";
 import Homepage from "./pages/Homepage";
@@ -18,9 +18,9 @@ export default function App() {
     <div className="app">
       <TopBar />
       <div className="layout">
-        <ProtectedRoute>
+        <ShowWhenAuthed>
           <LeftSidebar />
-        </ProtectedRoute>
+        </ShowWhenAuthed>
         <div className="container">
           <Routes>
             <Route path="/" element={<Navigate to="/homepage" replace />} />
