@@ -171,23 +171,6 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-.auth-banner {
-  width: 100%;
-  max-width: min(560px, 96vw);
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-brand-200);
-  background: var(--color-brand-50);
-  color: var(--color-grey-800);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.auth-banner strong {
-  color: var(--color-brand-800);
-}
-
 .topbar {
   position: sticky;
   top: 0;
@@ -526,6 +509,46 @@ textarea {
 .pill.off {
   border-color: rgba(220, 38, 38, 0.4);
   color: #dc2626;
+}
+
+.attempt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.attempt-summary::-webkit-details-marker {
+  display: none;
+}
+
+.attempt-answers {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 14px;
+}
+
+.answer-row {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-grey-50);
+}
+
+.answer-prompt {
+  margin-bottom: 8px;
+  line-height: 1.45;
+}
+
+.answer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .truncate {

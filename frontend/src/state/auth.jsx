@@ -13,6 +13,9 @@ function reducer(state, action) {
     case "LOGIN": {
       return { ...state, token: action.token, user: action.user };
     }
+    case "SET_USER": {
+      return { ...state, user: action.user };
+    }
     case "LOGOUT": {
       return { ...state, token: null, user: null };
     }
@@ -23,6 +26,25 @@ function reducer(state, action) {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initial);
+
+  /** Refresh user from backend so name / role match JWT + DB (e.g. after reload). Invalid token → logout. */
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return undefined;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.get("/auth/me").then(unwrap);
+        if (!cancelled) dispatch({ type: "SET_USER", user: data.user });
+      } catch {
+        if (!cancelled) dispatch({ type: "LOGOUT" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setAuthToken(state.token);

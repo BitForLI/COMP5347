@@ -8,8 +8,8 @@
 const RESEND_API = "https://api.resend.com/emails";
 
 function buildContent(code) {
-  const text = `你的验证码是：${code}（10 分钟内有效，请勿告诉他人。）`;
-  const html = `<p>你的验证码是：<strong style="font-size:18px;letter-spacing:2px;">${code}</strong></p><p>10 分钟内有效，请勿告诉他人。</p>`;
+  const text = `Your verification code is ${code}. It expires in 10 minutes. Do not share this code.`;
+  const html = `<p>Your verification code is <strong style="font-size:18px;letter-spacing:2px;">${code}</strong>.</p><p>It expires in 10 minutes. Do not share this code.</p>`;
   return { text, html };
 }
 
@@ -44,9 +44,22 @@ async function sendViaResend({ to, from, subject, text, html, apiKey }) {
   }
 }
 
+function resolveResendFrom() {
+  const fallback = "Quiz Game <onboarding@resend.dev>";
+  const raw = (process.env.EMAIL_FROM || "").trim();
+  if (!raw) return fallback;
+  // Resend only allows From on domains you verify; public mail hosts (e.g. @gmail.com) are rejected.
+  if (/@gmail\.com\b/i.test(raw)) {
+    // eslint-disable-next-line no-console
+    console.warn("[email] EMAIL_FROM must not be a @gmail.com address; using Resend test sender instead.");
+    return fallback;
+  }
+  return raw;
+}
+
 async function sendRegistrationCodeEmail(to, code) {
-  const from = (process.env.EMAIL_FROM || "miaomiao.emo@gmail.com").trim();
-  const subject = "Quiz Game 注册验证码";
+  const from = resolveResendFrom();
+  const subject = "Quiz Game — verification code";
   const { text, html } = buildContent(code);
 
   const resendKey = (process.env.RESEND_API_KEY || "").trim();
@@ -56,11 +69,11 @@ async function sendRegistrationCodeEmail(to, code) {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("未配置发信：请在环境变量中设置 RESEND_API_KEY");
+    throw new Error("Email is not configured: set RESEND_API_KEY in the environment.");
   }
 
   // eslint-disable-next-line no-console
-  console.warn(`[email] 未配置 RESEND_API_KEY，开发环境仅打印验证码：to=${to} code=${code}`);
+  console.warn(`[email] RESEND_API_KEY not set; printing code in dev only: to=${to} code=${code}`);
 }
 
 module.exports = { sendRegistrationCodeEmail };

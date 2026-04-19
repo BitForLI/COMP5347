@@ -10,6 +10,7 @@ const initial = {
   answers: [], // { questionId, selectedIndex, timeRemainingSec? }
   finished: false,
   lastScore: null,
+  attemptId: null,
 };
 
 function reducer(state, action) {
@@ -32,8 +33,15 @@ function reducer(state, action) {
       const finished = nextIndex >= state.questions.length;
       return { ...state, answers: nextAnswers, index: nextIndex, finished };
     }
-    case "SET_SCORE":
-      return { ...state, lastScore: action.score };
+    case "FINISH_QUIZ":
+      return {
+        ...state,
+        finished: true,
+        lastScore: action.score,
+        attemptId: action.attemptId ?? null,
+        answers: action.fullAnswers,
+        index: state.questions.length,
+      };
     default:
       return state;
   }
@@ -64,11 +72,23 @@ export function QuizProvider({ children }) {
           timeRemainingSec,
         });
       },
-      async submit() {
-        const data = await api
-          .post("/quiz/submit", { answers: state.answers })
-          .then(unwrap);
-        dispatch({ type: "SET_SCORE", score: data.score });
+      /** Last question: POST submit with full payload so submit runs with complete answers (no stale state). */
+      async submitLastAnswer(selectedIndex, timeRemainingSec) {
+        const q = state.questions[state.index];
+        if (!q) return null;
+        const row = {
+          questionId: q.id,
+          selectedIndex,
+          ...(timeRemainingSec != null ? { timeRemainingSec } : {}),
+        };
+        const fullAnswers = [...state.answers, row];
+        const data = await api.post("/quiz/submit", { answers: fullAnswers }).then(unwrap);
+        dispatch({
+          type: "FINISH_QUIZ",
+          score: data.score,
+          attemptId: data.attemptId,
+          fullAnswers,
+        });
         return data;
       },
     }),

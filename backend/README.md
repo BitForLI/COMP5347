@@ -10,7 +10,7 @@ cp .env.example .env
 
 **CORS**：`CORS_ORIGIN` 为逗号分隔的允许来源；预览部署地址形如 `https://6092caaf.comp5347test.pages.dev`，与正式站不同。设置 **`CORS_CLOUDFLARE_PAGES_PROJECT`**（Cloudflare Pages 项目短名，即 `xxx.pages.dev` 里的 `xxx`）后，会自动允许「正式 + 任意预览子域」同一项目的访问。
 
-注册验证码邮件：配置 **`RESEND_API_KEY`** 与 **`EMAIL_FROM`**（须与 [Resend](https://resend.com) 后台已验证发件人一致）。
+注册验证码邮件：配置 **`RESEND_API_KEY`**。**`EMAIL_FROM`**：已验证自有域名时写 `noreply@你的域`；无域名测试可用 Resend 文档中的发件人 `Quiz Game <onboarding@resend.dev>`（与代码默认一致，见 [Send with Node.js](https://resend.com/docs/send-with-nodejs)）。正式环境应使用已验证域名发件人，勿长期依赖 `onboarding@resend.dev`。
 
 首次发送与冷却后的「重发」都调用：`POST /api/auth/register/send-code`。
 

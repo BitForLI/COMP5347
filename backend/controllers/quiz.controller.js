@@ -93,7 +93,36 @@ async function myAttempts(req, res) {
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
-  return ok(res, { attempts });
+
+  const ids = [
+    ...new Set(attempts.flatMap((a) => a.answers.map((x) => String(x.questionId)))),
+  ];
+  const questions = ids.length ? await Question.find({ _id: { $in: ids } }).lean() : [];
+  const byId = new Map(questions.map((q) => [String(q._id), q]));
+
+  const enriched = attempts.map((a) => ({
+    ...a,
+    id: String(a._id),
+    userId: String(a.userId),
+    answers: a.answers.map((ans) => {
+      const q = byId.get(String(ans.questionId));
+      const opts = q?.options || [];
+      return {
+        questionId: String(ans.questionId),
+        selectedIndex: ans.selectedIndex,
+        isCorrect: ans.isCorrect,
+        timeRemainingSec: ans.timeRemainingSec,
+        prompt: q?.prompt,
+        options: opts,
+        category: q?.category,
+        selectedText: opts[ans.selectedIndex],
+        correctIndex: q?.correctIndex,
+        correctText: q?.correctIndex != null ? opts[q.correctIndex] : undefined,
+      };
+    }),
+  }));
+
+  return ok(res, { attempts: enriched });
 }
 
 async function leaderboard(req, res) {
