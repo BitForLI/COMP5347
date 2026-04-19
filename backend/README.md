@@ -8,6 +8,8 @@
 cp .env.example .env
 ```
 
+**CORS**：`CORS_ORIGIN` 为逗号分隔的允许来源；预览部署地址形如 `https://6092caaf.comp5347test.pages.dev`，与正式站不同。设置 **`CORS_CLOUDFLARE_PAGES_PROJECT`**（Cloudflare Pages 项目短名，即 `xxx.pages.dev` 里的 `xxx`）后，会自动允许「正式 + 任意预览子域」同一项目的访问。
+
 注册验证码邮件：配置 **`RESEND_API_KEY`** 与 **`EMAIL_FROM`**（须与 [Resend](https://resend.com) 后台已验证发件人一致）。
 
 首次发送与冷却后的「重发」都调用：`POST /api/auth/register/send-code`。

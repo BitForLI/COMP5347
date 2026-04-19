@@ -14,8 +14,33 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
+/**
+ * CORS：除 CORS_ORIGIN 显式列表外，可设 CORS_CLOUDFLARE_PAGES_PROJECT=comp5347test
+ * 以同时允许正式站与每次构建的预览站，如
+ * https://comp5347test.pages.dev 与 https://6092caaf.comp5347test.pages.dev
+ */
+function createCorsOriginOption() {
+  const explicit = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const pagesSlug = (process.env.CORS_CLOUDFLARE_PAGES_PROJECT || "").trim();
+
+  if (!explicit.length && !pagesSlug) return true;
+
+  return (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (explicit.includes(origin)) return callback(null, true);
+    if (pagesSlug) {
+      const esc = pagesSlug.replace(/\./g, "\\.");
+      const re = new RegExp(`^https://([a-z0-9-]+\\.)?${esc}\\.pages\\.dev$`, "i");
+      if (re.test(origin)) return callback(null, true);
+    }
+    callback(null, false);
+  };
+}
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true }));
+app.use(cors({ origin: createCorsOriginOption() }));
 app.use(express.json({ limit: "200kb" }));
 
 function sanitizeNoSql(obj) {
