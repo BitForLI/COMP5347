@@ -66,10 +66,13 @@ async function bulkImport(req, res) {
   if (arr.length > 200) return fail(res, "Too many questions (max 200)", 400);
 
   const validated = [];
-  for (const item of arr) {
-    const parsed = questionSchema.safeParse(item);
+  for (let i = 0; i < arr.length; i++) {
+    const parsed = questionSchema.safeParse(arr[i]);
     if (!parsed.success) {
-      return fail(res, parsed.error.issues[0]?.message || "Invalid question in array", 400);
+      const issue = parsed.error.issues[0];
+      const path = issue?.path?.length ? issue.path.join(".") : "(root)";
+      const msg = issue?.message || "invalid";
+      return fail(res, `Item ${i} (${path}): ${msg}`, 400);
     }
     validated.push(parsed.data);
   }
