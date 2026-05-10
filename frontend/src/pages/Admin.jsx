@@ -18,8 +18,15 @@ const schema = z.object({
   timeLimitSec: z.coerce.number().int().min(5).max(120).optional().or(z.nan()),
 });
 
+const PAGE_SIZE = 20;
+
 export default function Admin() {
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [q, setQ] = useState("");
   const [err, setErr] = useState(null);
   const [bulk, setBulk] = useState("");
   const [bulkMsg, setBulkMsg] = useState(null);
@@ -32,15 +39,31 @@ export default function Admin() {
   } = useForm({ resolver: zodResolver(schema), defaultValues: { correctIndex: 0, active: true } });
 
   async function refresh() {
-    const data = await api.get("/admin/questions").then(unwrap);
+    const data = await api
+      .get("/admin/questions", { params: { page, pageSize: PAGE_SIZE, q, active: activeFilter } })
+      .then(unwrap);
     setList(data.questions || []);
+    setTotal(data.total || 0);
   }
 
   useEffect(() => {
     refresh().catch((e) => setErr(e.message));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, q, activeFilter]);
 
   const mapped = useMemo(() => list, [list]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function onSearchSubmit(e) {
+    e.preventDefault();
+    setPage(1);
+    setQ(searchInput.trim());
+  }
+
+  function onActiveFilterChange(e) {
+    setPage(1);
+    setActiveFilter(e.target.value);
+  }
 
   async function onCreate(values) {
     setErr(null);
@@ -172,24 +195,78 @@ export default function Admin() {
 
       <div className="card">
         <h3>Questions</h3>
+        <div className="row" style={{ gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+          <form onSubmit={onSearchSubmit} className="row" style={{ gap: "4px" }}>
+            <input
+              type="search"
+              placeholder="Search prompt..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              style={{ minWidth: "200px" }}
+            />
+            <button className="btn" type="submit">Search</button>
+            {q && (
+              <button
+                className="btn"
+                type="button"
+                onClick={() => { setSearchInput(""); setQ(""); setPage(1); }}
+              >
+                Clear
+              </button>
+            )}
+          </form>
+          <label className="row" style={{ gap: "4px" }}>
+            Status:
+            <select value={activeFilter} onChange={onActiveFilterChange}>
+              <option value="all">All</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </label>
+          <span className="muted small" style={{ marginLeft: "auto" }}>
+            {total} total
+          </span>
+        </div>
         <div className="list">
-          {mapped.map((q) => (
-            <div key={q._id} className="item">
+          {mapped.length === 0 && <div className="muted">No questions match.</div>}
+          {mapped.map((item) => (
+            <div key={item._id} className="item">
               <div className="row space">
-                <b className="truncate">{q.prompt}</b>
-                <span className={`pill ${q.active ? "on" : "off"}`}>{q.active ? "active" : "inactive"}</span>
+                <b className="truncate">{item.prompt}</b>
+                <span className={`pill ${item.active ? "on" : "off"}`}>{item.active ? "active" : "inactive"}</span>
               </div>
-              <div className="muted small">correctIndex: {q.correctIndex}</div>
+              <div className="muted small">correctIndex: {item.correctIndex}</div>
               <div className="row">
-                <button className="btn" type="button" onClick={() => onToggle(q._id)}>
+                <button className="btn" type="button" onClick={() => onToggle(item._id)}>
                   Toggle
                 </button>
-                <button className="btn danger" type="button" onClick={() => onDelete(q._id)}>
+                <button className="btn danger" type="button" onClick={() => onDelete(item._id)}>
                   Delete
                 </button>
               </div>
             </div>
           ))}
+        </div>
+        <div className="row" style={{ gap: "8px", marginTop: "12px", alignItems: "center" }}>
+          <button
+            className="btn"
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Prev
+          </button>
+          <span className="muted small">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            className="btn"
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
