@@ -30,6 +30,7 @@ export default function Admin() {
   const [err, setErr] = useState(null);
   const [bulk, setBulk] = useState("");
   const [bulkMsg, setBulkMsg] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   const {
     register,
@@ -65,7 +66,43 @@ export default function Admin() {
     setActiveFilter(e.target.value);
   }
 
-  async function onCreate(values) {
+  function resetForm() {
+    setEditingId(null);
+    reset({
+      prompt: "",
+      options0: "",
+      options1: "",
+      options2: "",
+      options3: "",
+      correctIndex: 0,
+      active: true,
+      category: "",
+      imageUrl: "",
+      explanation: "",
+      timeLimitSec: undefined,
+    });
+  }
+
+  function startEdit(item) {
+    setErr(null);
+    setEditingId(item._id);
+    reset({
+      prompt: item.prompt,
+      options0: item.options?.[0] || "",
+      options1: item.options?.[1] || "",
+      options2: item.options?.[2] || "",
+      options3: item.options?.[3] || "",
+      correctIndex: item.correctIndex,
+      active: item.active,
+      category: item.category || "",
+      imageUrl: item.imageUrl || "",
+      explanation: item.explanation || "",
+      timeLimitSec: item.timeLimitSec,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function onSubmit(values) {
     setErr(null);
     const payload = {
       prompt: values.prompt,
@@ -77,8 +114,12 @@ export default function Admin() {
       explanation: values.explanation || undefined,
       timeLimitSec: Number.isFinite(values.timeLimitSec) ? values.timeLimitSec : undefined,
     };
-    await api.post("/admin/questions", payload).then(unwrap);
-    reset();
+    if (editingId) {
+      await api.patch(`/admin/questions/${editingId}`, payload).then(unwrap);
+    } else {
+      await api.post("/admin/questions", payload).then(unwrap);
+    }
+    resetForm();
     await refresh();
   }
 
@@ -115,8 +156,8 @@ export default function Admin() {
       </div>
 
       <div className="card">
-        <h3>Create question</h3>
-        <form className="form" onSubmit={handleSubmit(onCreate)}>
+        <h3>{editingId ? "Edit question" : "Create question"}</h3>
+        <form className="form" onSubmit={handleSubmit(onSubmit)}>
           <label>
             Prompt
             <textarea rows={3} {...register("prompt")} />
@@ -176,9 +217,16 @@ export default function Admin() {
             </label>
           </div>
 
-          <button className="btn primary" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "..." : "Create"}
-          </button>
+          <div className="row">
+            <button className="btn primary" disabled={isSubmitting} type="submit">
+              {isSubmitting ? "..." : editingId ? "Save changes" : "Create"}
+            </button>
+            {editingId && (
+              <button className="btn" type="button" onClick={resetForm}>
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -237,6 +285,9 @@ export default function Admin() {
               </div>
               <div className="muted small">correctIndex: {item.correctIndex}</div>
               <div className="row">
+                <button className="btn" type="button" onClick={() => startEdit(item)}>
+                  Edit
+                </button>
                 <button className="btn" type="button" onClick={() => onToggle(item._id)}>
                   Toggle
                 </button>
