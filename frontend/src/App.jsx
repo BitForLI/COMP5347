@@ -6,6 +6,7 @@ import LeftSidebar from "./components/LeftSidebar";
 import Home from "./pages/Home";
 import Homepage from "./pages/Homepage";
 import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
 import Register from "./pages/Register";
 import Quiz from "./pages/Quiz";
 import Leaderboard from "./pages/Leaderboard";
@@ -34,6 +35,7 @@ export default function App() {
             />
             <Route path="/home" element={<Navigate to="/homepage" replace />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/register" element={<Register />} />
             <Route
               path="/quiz"
