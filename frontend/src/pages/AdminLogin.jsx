@@ -10,9 +10,9 @@ const schema = z.object({
   password: z.string().min(8, "At least 8 characters.").max(72),
 });
 
-export default function Login() {
+export default function AdminLogin() {
   const nav = useNavigate();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [serverErr, setServerErr] = useState(null);
 
   const {
@@ -25,7 +25,13 @@ export default function Login() {
     setServerErr(null);
     try {
       await login(values.email, values.password);
-      nav("/");
+      const stored = JSON.parse(localStorage.getItem("user") || "null");
+      if (stored?.role !== "admin") {
+        logout();
+        setServerErr("This account is not an admin.");
+        return;
+      }
+      nav("/admin");
     } catch (e) {
       setServerErr(e.message);
     }
@@ -34,7 +40,8 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="card card--auth">
-        <h2>Log in</h2>
+        <h2>Admin sign in</h2>
+        <p className="muted small">Restricted to admin accounts.</p>
         <form onSubmit={handleSubmit(onSubmit)} className="form">
           <label>
             Email
@@ -48,13 +55,11 @@ export default function Login() {
           </label>
           {serverErr && <div className="error">{serverErr}</div>}
           <button className="btn primary" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "…" : "Log in"}
+            {isSubmitting ? "…" : "Sign in"}
           </button>
         </form>
         <p className="muted small" style={{ marginBottom: 0 }}>
-          No account? <Link to="/register">Register</Link>
-          {" · "}
-          <Link to="/admin/login">Admin sign in</Link>
+          Not an admin? <Link to="/login">Player login</Link>
         </p>
       </div>
     </div>

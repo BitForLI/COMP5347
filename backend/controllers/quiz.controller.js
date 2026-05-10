@@ -29,9 +29,6 @@ async function getQuiz(req, res) {
     prompt: q.prompt,
     options: q.options,
     category: q.category,
-    imageUrl: q.imageUrl,
-    explanation: q.explanation,
-    timeLimitSec: q.timeLimitSec,
   }));
 
   return ok(res, { questions });

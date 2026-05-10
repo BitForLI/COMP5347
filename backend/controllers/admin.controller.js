@@ -8,14 +8,35 @@ const questionSchema = z.object({
   correctIndex: z.number().int().min(0).max(3),
   active: z.boolean().optional(),
   category: z.string().min(1).max(50).optional(),
-  imageUrl: z.string().url().max(500).optional(),
-  explanation: z.string().min(1).max(800).optional(),
-  timeLimitSec: z.number().int().min(5).max(120).optional(),
 });
 
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  q: z.string().max(200).optional().default(""),
+  active: z.enum(["all", "true", "false"]).optional().default("all"),
+});
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function listQuestions(req, res) {
-  const items = await Question.find({}).sort({ createdAt: -1 }).limit(200).lean();
-  return ok(res, { questions: items });
+  const parsed = listQuerySchema.safeParse(req.query);
+  if (!parsed.success) return fail(res, parsed.error.issues[0]?.message || "Invalid query", 400);
+  const { page, pageSize, q, active } = parsed.data;
+
+  const filter = {};
+  if (q) filter.prompt = { $regex: escapeRegex(q), $options: "i" };
+  if (active !== "all") filter.active = active === "true";
+
+  const skip = (page - 1) * pageSize;
+  const [items, total] = await Promise.all([
+    Question.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize).lean(),
+    Question.countDocuments(filter),
+  ]);
+
+  return ok(res, { questions: items, page, pageSize, total });
 }
 
 async function createQuestion(req, res) {
@@ -66,10 +87,13 @@ async function bulkImport(req, res) {
   if (arr.length > 200) return fail(res, "Too many questions (max 200)", 400);
 
   const validated = [];
-  for (const item of arr) {
-    const parsed = questionSchema.safeParse(item);
+  for (let i = 0; i < arr.length; i++) {
+    const parsed = questionSchema.safeParse(arr[i]);
     if (!parsed.success) {
-      return fail(res, parsed.error.issues[0]?.message || "Invalid question in array", 400);
+      const issue = parsed.error.issues[0];
+      const path = issue?.path?.length ? issue.path.join(".") : "(root)";
+      const msg = issue?.message || "invalid";
+      return fail(res, `Item ${i} (${path}): ${msg}`, 400);
     }
     validated.push(parsed.data);
   }

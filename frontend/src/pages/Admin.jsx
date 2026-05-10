@@ -13,16 +13,21 @@ const schema = z.object({
   correctIndex: z.coerce.number().int().min(0).max(3),
   active: z.boolean().optional(),
   category: z.string().max(50).optional(),
-  imageUrl: z.string().url().max(500).optional().or(z.literal("")),
-  explanation: z.string().max(800).optional(),
-  timeLimitSec: z.coerce.number().int().min(5).max(120).optional().or(z.nan()),
 });
+
+const PAGE_SIZE = 20;
 
 export default function Admin() {
   const [list, setList] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [q, setQ] = useState("");
   const [err, setErr] = useState(null);
   const [bulk, setBulk] = useState("");
   const [bulkMsg, setBulkMsg] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   const {
     register,
@@ -32,17 +37,63 @@ export default function Admin() {
   } = useForm({ resolver: zodResolver(schema), defaultValues: { correctIndex: 0, active: true } });
 
   async function refresh() {
-    const data = await api.get("/admin/questions").then(unwrap);
+    const data = await api
+      .get("/admin/questions", { params: { page, pageSize: PAGE_SIZE, q, active: activeFilter } })
+      .then(unwrap);
     setList(data.questions || []);
+    setTotal(data.total || 0);
   }
 
   useEffect(() => {
     refresh().catch((e) => setErr(e.message));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, q, activeFilter]);
 
   const mapped = useMemo(() => list, [list]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  async function onCreate(values) {
+  function onSearchSubmit(e) {
+    e.preventDefault();
+    setPage(1);
+    setQ(searchInput.trim());
+  }
+
+  function onActiveFilterChange(e) {
+    setPage(1);
+    setActiveFilter(e.target.value);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    reset({
+      prompt: "",
+      options0: "",
+      options1: "",
+      options2: "",
+      options3: "",
+      correctIndex: 0,
+      active: true,
+      category: "",
+    });
+  }
+
+  function startEdit(item) {
+    setErr(null);
+    setEditingId(item._id);
+    reset({
+      prompt: item.prompt,
+      options0: item.options?.[0] || "",
+      options1: item.options?.[1] || "",
+      options2: item.options?.[2] || "",
+      options3: item.options?.[3] || "",
+      correctIndex: item.correctIndex,
+      active: item.active,
+      category: item.category || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function onSubmit(values) {
     setErr(null);
     const payload = {
       prompt: values.prompt,
@@ -50,12 +101,13 @@ export default function Admin() {
       correctIndex: values.correctIndex,
       active: values.active ?? true,
       category: values.category || undefined,
-      imageUrl: values.imageUrl || undefined,
-      explanation: values.explanation || undefined,
-      timeLimitSec: Number.isFinite(values.timeLimitSec) ? values.timeLimitSec : undefined,
     };
-    await api.post("/admin/questions", payload).then(unwrap);
-    reset();
+    if (editingId) {
+      await api.patch(`/admin/questions/${editingId}`, payload).then(unwrap);
+    } else {
+      await api.post("/admin/questions", payload).then(unwrap);
+    }
+    resetForm();
     await refresh();
   }
 
@@ -92,8 +144,8 @@ export default function Admin() {
       </div>
 
       <div className="card">
-        <h3>Create question</h3>
-        <form className="form" onSubmit={handleSubmit(onCreate)}>
+        <h3>{editingId ? "Edit question" : "Create question"}</h3>
+        <form className="form" onSubmit={handleSubmit(onSubmit)}>
           <label>
             Prompt
             <textarea rows={3} {...register("prompt")} />
@@ -137,25 +189,18 @@ export default function Admin() {
               Category (optional)
               <input {...register("category")} />
             </label>
-            <label>
-              Image URL (optional)
-              <input {...register("imageUrl")} />
-              {errors.imageUrl && <div className="error">{errors.imageUrl.message}</div>}
-            </label>
-            <label>
-              Explanation (optional)
-              <input {...register("explanation")} />
-            </label>
-            <label>
-              Time limit sec (optional)
-              <input type="number" {...register("timeLimitSec")} />
-              {errors.timeLimitSec && <div className="error">{errors.timeLimitSec.message}</div>}
-            </label>
           </div>
 
-          <button className="btn primary" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "..." : "Create"}
-          </button>
+          <div className="row">
+            <button className="btn primary" disabled={isSubmitting} type="submit">
+              {isSubmitting ? "..." : editingId ? "Save changes" : "Create"}
+            </button>
+            {editingId && (
+              <button className="btn" type="button" onClick={resetForm}>
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -172,24 +217,81 @@ export default function Admin() {
 
       <div className="card">
         <h3>Questions</h3>
+        <div className="row" style={{ gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+          <form onSubmit={onSearchSubmit} className="row" style={{ gap: "4px" }}>
+            <input
+              type="search"
+              placeholder="Search prompt..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              style={{ minWidth: "200px" }}
+            />
+            <button className="btn" type="submit">Search</button>
+            {q && (
+              <button
+                className="btn"
+                type="button"
+                onClick={() => { setSearchInput(""); setQ(""); setPage(1); }}
+              >
+                Clear
+              </button>
+            )}
+          </form>
+          <label className="row" style={{ gap: "4px" }}>
+            Status:
+            <select value={activeFilter} onChange={onActiveFilterChange}>
+              <option value="all">All</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </label>
+          <span className="muted small" style={{ marginLeft: "auto" }}>
+            {total} total
+          </span>
+        </div>
         <div className="list">
-          {mapped.map((q) => (
-            <div key={q._id} className="item">
+          {mapped.length === 0 && <div className="muted">No questions match.</div>}
+          {mapped.map((item) => (
+            <div key={item._id} className="item">
               <div className="row space">
-                <b className="truncate">{q.prompt}</b>
-                <span className={`pill ${q.active ? "on" : "off"}`}>{q.active ? "active" : "inactive"}</span>
+                <b className="truncate">{item.prompt}</b>
+                <span className={`pill ${item.active ? "on" : "off"}`}>{item.active ? "active" : "inactive"}</span>
               </div>
-              <div className="muted small">correctIndex: {q.correctIndex}</div>
+              <div className="muted small">correctIndex: {item.correctIndex}</div>
               <div className="row">
-                <button className="btn" type="button" onClick={() => onToggle(q._id)}>
+                <button className="btn" type="button" onClick={() => startEdit(item)}>
+                  Edit
+                </button>
+                <button className="btn" type="button" onClick={() => onToggle(item._id)}>
                   Toggle
                 </button>
-                <button className="btn danger" type="button" onClick={() => onDelete(q._id)}>
+                <button className="btn danger" type="button" onClick={() => onDelete(item._id)}>
                   Delete
                 </button>
               </div>
             </div>
           ))}
+        </div>
+        <div className="row" style={{ gap: "8px", marginTop: "12px", alignItems: "center" }}>
+          <button
+            className="btn"
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Prev
+          </button>
+          <span className="muted small">
+            Page {page} / {totalPages}
+          </span>
+          <button
+            className="btn"
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

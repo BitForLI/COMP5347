@@ -14,11 +14,8 @@ const QuestionSchema = new mongoose.Schema(
     correctIndex: { type: Number, required: true, min: 0, max: 3 },
     active: { type: Boolean, default: true },
 
-    // 变体预留字段（最终请只在 README 中声明并启用一种变体）
+    // Chosen variation: category-based question banks (see README)
     category: { type: String, trim: true, maxlength: 50 },
-    imageUrl: { type: String, trim: true, maxlength: 500 },
-    explanation: { type: String, trim: true, maxlength: 800 },
-    timeLimitSec: { type: Number, min: 5, max: 120 },
   },
   { timestamps: true }
 );
