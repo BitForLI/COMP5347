@@ -2,7 +2,16 @@
 
 本仓库提供一个符合题目技术约束的**可运行基础骨架**（MERN + JWT + RBAC + Admin CRUD + Bulk Import + Dark Mode + 统一 API envelope）。
 
-> 重要：你们必须从题目允许的 4 个变体中**选择且仅选择 1 个**，并在 README 明确写出并在演示中展示。当前骨架在 `Question` 模型里为多种变体预留了字段，但你们最终提交时应只“启用并解释一种”。
+## Chosen Variation: Category-based question banks
+
+本项目从题目允许的 4 个变体中选择 **「分类题库（Category-based）」** 作为唯一启用的变体：
+
+- 每道题可挂一个 `category`（如 General / Science / History）。
+- Player 端 `/quiz` 页先选分类，再随机抽 6–10 道题作答。
+- Admin 端在创建/编辑题目和 Bulk Import 时可设置 `category` 字段。
+- 后端 `GET /api/quiz/categories` 返回所有现存分类供前端构建选择页。
+
+`Question` schema 仅保留 `category` 这一个变体字段，其他先前预留的字段（`imageUrl` / `explanation` / `timeLimitSec`）已移除以避免混淆。
 
 ## Tech Stack
 
@@ -110,9 +119,7 @@ flowchart LR
 
 ## Next Steps (你们接下来要做的)
 
-- **确定并实现 1 个变体**（例如：分类题库 / 图片题 / 计时题 / 结束后 review）
 - **完善 Quiz mechanics**：题目随机洗牌、6–10 题、提交后不可改、保存 answers 列表
-- **完善 Admin**：Edit（目前只做了 Create/Toggle/Delete，Update API 已有但 UI 未做）
 - **增强安全/健壮性**：更严格输入校验、错误提示、边界情况
 - **补充文档**：OpenAPI/Swagger 或 Postman export、团队分工、commit 链接
 

@@ -13,9 +13,6 @@ const schema = z.object({
   correctIndex: z.coerce.number().int().min(0).max(3),
   active: z.boolean().optional(),
   category: z.string().max(50).optional(),
-  imageUrl: z.string().url().max(500).optional().or(z.literal("")),
-  explanation: z.string().max(800).optional(),
-  timeLimitSec: z.coerce.number().int().min(5).max(120).optional().or(z.nan()),
 });
 
 const PAGE_SIZE = 20;
@@ -77,9 +74,6 @@ export default function Admin() {
       correctIndex: 0,
       active: true,
       category: "",
-      imageUrl: "",
-      explanation: "",
-      timeLimitSec: undefined,
     });
   }
 
@@ -95,9 +89,6 @@ export default function Admin() {
       correctIndex: item.correctIndex,
       active: item.active,
       category: item.category || "",
-      imageUrl: item.imageUrl || "",
-      explanation: item.explanation || "",
-      timeLimitSec: item.timeLimitSec,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -110,9 +101,6 @@ export default function Admin() {
       correctIndex: values.correctIndex,
       active: values.active ?? true,
       category: values.category || undefined,
-      imageUrl: values.imageUrl || undefined,
-      explanation: values.explanation || undefined,
-      timeLimitSec: Number.isFinite(values.timeLimitSec) ? values.timeLimitSec : undefined,
     };
     if (editingId) {
       await api.patch(`/admin/questions/${editingId}`, payload).then(unwrap);
@@ -200,20 +188,6 @@ export default function Admin() {
             <label>
               Category (optional)
               <input {...register("category")} />
-            </label>
-            <label>
-              Image URL (optional)
-              <input {...register("imageUrl")} />
-              {errors.imageUrl && <div className="error">{errors.imageUrl.message}</div>}
-            </label>
-            <label>
-              Explanation (optional)
-              <input {...register("explanation")} />
-            </label>
-            <label>
-              Time limit sec (optional)
-              <input type="number" {...register("timeLimitSec")} />
-              {errors.timeLimitSec && <div className="error">{errors.timeLimitSec.message}</div>}
             </label>
           </div>
 

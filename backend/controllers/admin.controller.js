@@ -8,9 +8,6 @@ const questionSchema = z.object({
   correctIndex: z.number().int().min(0).max(3),
   active: z.boolean().optional(),
   category: z.string().min(1).max(50).optional(),
-  imageUrl: z.string().url().max(500).optional(),
-  explanation: z.string().min(1).max(800).optional(),
-  timeLimitSec: z.number().int().min(5).max(120).optional(),
 });
 
 const listQuerySchema = z.object({
